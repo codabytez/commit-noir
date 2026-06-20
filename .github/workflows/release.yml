@@ -11,46 +11,53 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Compile TypeScript
-        run: pnpm run compile
-
-      - name: Read version from package.json
-        id: pkg
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Check if tag already exists
-        id: tag_check
+      - name: Check if version was bumped
+        id: version_check
         run: |
-          if git rev-parse "v${{ steps.pkg.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          CURRENT=$(node -p "require('./package.json').version")
+          PREVIOUS=$(git show HEAD~1:package.json | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>console.log(JSON.parse(d).version))")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "previous=$PREVIOUS" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "bumped=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "bumped=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Package VSIX
-        if: steps.tag_check.outputs.exists == 'false'
-        run: pnpm dlx @vscode/vsce package --no-dependencies --out commit-noir-v${{ steps.pkg.outputs.version }}.vsix
+      - name: Compile TypeScript
+        if: steps.version_check.outputs.bumped == 'true'
+        run: pnpm run compile
 
-      - name: Create tag and GitHub Release
-        if: steps.tag_check.outputs.exists == 'false'
+      - name: Package VSIX
+        if: steps.version_check.outputs.bumped == 'true'
+        run: pnpm dlx @vscode/vsce package --no-dependencies --out commit-noir-v${{ steps.version_check.outputs.current }}.vsix
+
+      - name: Create GitHub Release
+        if: steps.version_check.outputs.bumped == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.pkg.outputs.version }}
-          name: Commit Noir v${{ steps.pkg.outputs.version }}
-          files: commit-noir-v${{ steps.pkg.outputs.version }}.vsix
+          tag_name: v${{ steps.version_check.outputs.current }}
+          name: Commit Noir v${{ steps.version_check.outputs.current }}
+          files: commit-noir-v${{ steps.version_check.outputs.current }}.vsix
           generate_release_notes: true
+
+      - name: Publish to VS Code Marketplace
+        if: steps.version_check.outputs.bumped == 'true'
+        run: pnpm dlx @vscode/vsce publish --no-dependencies --packagePath commit-noir-v${{ steps.version_check.outputs.current }}.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
