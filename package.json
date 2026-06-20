@@ -2,11 +2,34 @@
   "name": "commit-noir",
   "displayName": "Commit Noir — Git Commit Quality Guard",
   "description": "Terminal Noir pre-commit hook scanner with VS Code UI",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "codabytez",
+  "license": "MIT",
   "icon": "media/icon.png",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other", "Linters"],
+  "keywords": [
+    "git",
+    "commit",
+    "pre-commit",
+    "hook",
+    "secrets",
+    "linter",
+    "security"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codabytez/commit-noir.git"
+  },
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Linters"
+  ],
   "activationEvents": [
     "workspaceContains:.git"
   ],
@@ -61,8 +84,15 @@
         },
         "commitNoir.ignorePaths": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["*.lock", "dist/", "build/", "*.min.js"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "*.lock",
+            "dist/",
+            "build/",
+            "*.min.js"
+          ],
           "description": "Glob patterns to exclude from scanning."
         }
       }
@@ -72,11 +102,15 @@
     "vscode:prepublish": "pnpm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
+    "eslint": "^10.5.0",
     "typescript": "^5.3.0"
   }
 }
